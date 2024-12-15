@@ -147,7 +147,7 @@ int main() {
     // Инициализируем буферы для последующей записи в файлы
     vector<vector<uint32_t>> buffers(rounds*2 + 1);
 
-    for (uint64_t ai_n = 511; ai_n <= 511; ai_n++) {
+    for (uint64_t ai_n = 0; ai_n <= vn; ai_n++) {
         //cout << "Input data: " << ai << endl;
         uint64_t ai;
         if (isLittleEndian())
