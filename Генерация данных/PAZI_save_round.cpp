@@ -106,7 +106,7 @@ int main() {
     uint32_t key[4] = { 1, 2, 3, 4 };
     int rounds = 32;
     size_t bufferLimit = 5000;  // Лимит данных в буфере (количество элементов)
-    cout << "aaa";
+    
     // Инициализируем буферы для последующей записи в файлы
     vector<vector<uint32_t>> buffers(65);
     for (uint64_t ai_n = 0; ai_n <= vn; ai_n++) {
