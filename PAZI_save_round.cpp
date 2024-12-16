@@ -1,4 +1,4 @@
-﻿#include <iostream>  
+#include <iostream>  
 #include <fstream>   
 #include <iomanip>   
 #include <cstdint>   
@@ -37,6 +37,24 @@ uint64_t convertEndian(uint64_t value) {
         ((value & 0x00000000000000FFULL) << 56);
 }
 
+void flushBuffers(vector<vector<uint32_t>>& buffers, int rounds) {
+    for (int i = 0; i <= rounds * 2; i++) {
+        if (!buffers[i].empty()) {
+            string filename = "./output/round_" + to_string(i) + ".bin";
+            ofstream file(filename, ios::binary | ios::app);
+            if (!file.is_open()) {
+                cerr << "Error: Unable to open file " << filename << endl;
+                continue;
+            }
+            file.write(reinterpret_cast<char*>(buffers[i].data()), buffers[i].size() * sizeof(uint32_t));
+            file.close();
+
+            // Очищаем буфер после записи
+            buffers[i].clear();
+        }
+    }
+}
+
 void encryptWithRounds(uint64_t ai, uint32_t* key, int rounds, vector<vector<uint32_t>>& buffers, size_t bufferLimit) {
     uint32_t sum = 0, v0 = static_cast<uint32_t>(ai & 0xFFFFFFFF), v1 = static_cast<uint32_t>(ai >> 32);
     uint32_t delta = 0x9e3779b9;
@@ -44,61 +62,24 @@ void encryptWithRounds(uint64_t ai, uint32_t* key, int rounds, vector<vector<uin
     // Сохраняем открытый текст
     buffers[0].push_back(v0);
     buffers[0].push_back(v1);
-    // Если буфер достиг лимита, записываем его в файл
-    if (buffers[0].size() >= bufferLimit) {
-        string filename = "./output/round_0.bin";
-        ofstream file(filename, ios::binary | ios::app);
-        if (!file.is_open()) {
-            cerr << "Error: Unable to open file " << filename << endl;
-        }
-        file.write(reinterpret_cast<char*>(buffers[0].data()), buffers[0].size() * sizeof(uint32_t));
-        file.close();
-
-        // Очищаем буфер после записи
-        buffers[0].clear();
-    }
-
+    
     for (int i = 1; i <= rounds; i++) {
         sum += delta;
         v0 += ((v1 << 4) + key[0]) ^ (v1 + sum) ^ ((v1 >> 5) + key[1]);
         // Добавляем данные в соответствующий буфер
-        buffers[i*2-1].push_back(v1);
-        buffers[i*2-1].push_back(v0);
+        buffers[i * 2 - 1].push_back(v1);
+        buffers[i * 2 - 1].push_back(v0);
         v1 += ((v0 << 4) + key[2]) ^ (v0 + sum) ^ ((v0 >> 5) + key[3]);
 
         // Добавляем данные в соответствующий буфер
-        buffers[i*2].push_back(v0);
-        buffers[i*2].push_back(v1);
-
-        // Если буфер достиг лимита, записываем его в файл
-        if (buffers[i*2-1].size() >= bufferLimit) {
-            string filename = "./output/round_" + to_string(i*2-1) + ".bin";
-            ofstream file(filename, ios::binary | ios::app);
-            if (!file.is_open()) {
-                cerr << "Error: Unable to open file " << filename << endl;
-                continue;
-            }
-            file.write(reinterpret_cast<char*>(buffers[i * 2 - 1].data()), buffers[i * 2 - 1].size() * sizeof(uint32_t));
-            file.close();
-
-            // Очищаем буфер после записи
-            buffers[i * 2 - 1].clear();
-
-            filename = "./output/round_" + to_string(i * 2) + ".bin";
-            ofstream file2(filename, ios::binary | ios::app);
-            if (!file.is_open()) {
-                cerr << "Error: Unable to open file " << filename << endl;
-                continue;
-            }
-            file2.write(reinterpret_cast<char*>(buffers[i * 2].data()), buffers[i * 2].size() * sizeof(uint32_t));
-            file2.close();
-
-            // Очищаем буфер после записи
-            buffers[i * 2].clear();
-        }
+        buffers[i * 2].push_back(v0);
+        buffers[i * 2].push_back(v1);
     }
+    // Если буфер достиг лимита, записываем его в файл
+    if (buffers[0].size() >= bufferLimit)
+        flushBuffers(buffers, rounds);
 
-    cout << "encrypted: v0 = " << v0 << " v1 = " << v1 << endl;
+    /*cout << "encrypted: v0 = " << v0 << " v1 = " << v1 << endl;*/
 }
 
 void decrypt(uint32_t* values, uint32_t* key) {
@@ -120,33 +101,14 @@ void decrypt(uint32_t* values, uint32_t* key) {
 
 }
 
-void flushBuffers(vector<vector<uint32_t>>& buffers, int rounds) {
-    for (int i = 0; i <= rounds*2; i++) {
-        if (!buffers[i].empty()) {
-            string filename = "./output/round_" + to_string(i) + ".bin";
-            ofstream file(filename, ios::binary | ios::app);
-            if (!file.is_open()) {
-                cerr << "Error: Unable to open file " << filename << endl;
-                continue;
-            }
-            file.write(reinterpret_cast<char*>(buffers[i].data()), buffers[i].size() * sizeof(uint32_t));
-            file.close();
-
-            // Очищаем буфер после записи
-            buffers[i].clear();
-        }
-    }
-}
-
 int main() {
     uint64_t vn = 4194303;  // Максимальное значение ai 4194303 для 32мб
     uint32_t key[4] = { 1, 2, 3, 4 };
     int rounds = 32;
     size_t bufferLimit = 5000;  // Лимит данных в буфере (количество элементов)
-
+    cout << "aaa";
     // Инициализируем буферы для последующей записи в файлы
-    vector<vector<uint32_t>> buffers(rounds*2 + 1);
-
+    vector<vector<uint32_t>> buffers(65);
     for (uint64_t ai_n = 0; ai_n <= vn; ai_n++) {
         //cout << "Input data: " << ai << endl;
         uint64_t ai;
