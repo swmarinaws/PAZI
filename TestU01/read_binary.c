@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
     // Создаем генератор
     unif01_Gen *gen = unif01_CreateExternGenBits("Binary File Reader", ReadBinary);
     // Запускаем статистические тесты
-    bbattery_Crush(gen);
+    bbattery_SmallCrush(gen);
     // Удаляем генератор и освобождаем память
     unif01_DeleteExternGenBits(gen);
     free(buffer);
